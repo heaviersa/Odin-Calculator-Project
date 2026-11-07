@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="styles.css">
+    <title>Odin Calculator Project</title>
+</head>
+
+<body>
+  <h1>Calculator</h1>
+
+  <div id="calculator">
+    <div id="history"></div>
+    <div id="display">0</div>
+
+    <div class="row">
+      <button class="clear" id="clearBtn">C</button>
+      <button class="util" id="backBtn">⌫</button>
+      <button class="util" id="plusMinusBtn">+/-</button>
+      <button class="operator" data-op="/">÷</button>
+    </div>
+    <div class="row">
+      <button data-num="7">7</button>
+      <button data-num="8">8</button>
+      <button data-num="9">9</button>
+      <button class="operator" data-op="*">×</button>
+    </div>
+    <div class="row">
+      <button data-num="4">4</button>
+      <button data-num="5">5</button>
+      <button data-num="6">6</button>
+      <button class="operator" data-op="-">-</button>
+    </div>
+    <div class="row">
+      <button data-num="1">1</button>
+      <button data-num="2">2</button>
+      <button data-num="3">3</button>
+      <button class="operator" data-op="+">+</button>
+    </div>
+    <div class="row">
+      <button data-num="0">0</button>
+      <button data-num=".">.</button>
+      <button class="equals" id="equalsBtn">=</button>
+    </div>
+  </div>
+
+<script>
+  let display = document.getElementById('display');
+  let historyEl = document.getElementById('history');
+  let currentInput = "0";
+  let firstNumber = null;
+  let operator = null;
+  let justCalculated = false;
+
+  function updateDisplay() {
+    display.textContent = currentInput;
+    if (firstNumber !== null && operator !== null) {
+      let symbol = operator === "*" ? "×" : operator === "/" ? "÷" : operator;
+      historyEl.textContent = firstNumber + " " + symbol;
+    } else {
+      historyEl.textContent = "";
+    }
+  }
+
+  function inputNumber(num) {
+    if (justCalculated) {
+      currentInput = "0";
+      justCalculated = false;
+    }
+    if (num === ".") {
+      if (currentInput.includes(".")) return;
+      currentInput = currentInput + ".";
+    } else if (currentInput === "0") {
+      currentInput = num;
+    } else if (currentInput === "-0") {
+      currentInput = "-" + num;
+    } else {
+      if (currentInput.replace(/[-.]/g, "").length >= 12) return;
+      currentInput = currentInput + num;
+    }
+    updateDisplay();
+  }
+
+  function inputOperator(op) {
+    // If you press + then - , just change the operator, don't break
+    if (operator !== null && currentInput === "0" && !justCalculated) {
+      operator = op;
+      updateDisplay();
+      return;
+    }
+    // If you already have 5 + 3 and press + again, calculate first: 5+3=8, then keep going
+    if (firstNumber !== null && operator !== null && !justCalculated) {
+      calculate();
+    }
+    firstNumber = parseFloat(currentInput);
+    operator = op;
+    currentInput = "0";
+    justCalculated = false;
+    updateDisplay();
+  }
+
+  function calculate() {
+    if (firstNumber === null || operator === null) return;
+    let secondNumber = parseFloat(currentInput);
+    let result;
+
+    if (operator === "+") result = firstNumber + secondNumber;
+    if (operator === "-") result = firstNumber - secondNumber;
+    if (operator === "*") result = firstNumber * secondNumber;
+    if (operator === "/") {
+      if (secondNumber === 0) {
+        currentInput = "Can't divide by 0";
+        display.textContent = currentInput;
+        firstNumber = null; operator = null;
+        justCalculated = true;
+        return;
+      }
+      result = firstNumber / secondNumber;
+    }
+
+    // Fix floating point bug: 0.1 + 0.2 = 0.30000000004
+    result = Math.round(result * 100000000) / 100000000;
+    currentInput = result.toString();
+    firstNumber = null;
+    operator = null;
+    justCalculated = true;
+    updateDisplay();
+  }
+
+  function clearAll() {
+    currentInput = "0";
+    firstNumber = null;
+    operator = null;
+    justCalculated = false;
+    updateDisplay();
+  }
+
+  function backspace() {
+    if (justCalculated) { clearAll(); return; }
+    if (currentInput.length > 1) {
+      currentInput = currentInput.slice(0, -1);
+      if (currentInput === "-" || currentInput === "") currentInput = "0";
+    } else {
+      currentInput = "0";
+    }
+    updateDisplay();
+  }
+
+  function toggleSign() {
+    if (currentInput === "0" || currentInput === "Can't divide by 0") return;
+    if (currentInput.startsWith("-")) {
+      currentInput = currentInput.slice(1);
+    } else {
+      currentInput = "-" + currentInput;
+    }
+    updateDisplay();
+  }
+
+  document.querySelectorAll('[data-num]').forEach(btn => {
+    btn.addEventListener('click', () => inputNumber(btn.getAttribute('data-num')));
+  });
+  document.querySelectorAll('[data-op]').forEach(btn => {
+    btn.addEventListener('click', () => inputOperator(btn.getAttribute('data-op')));
+  });
+  document.getElementById('equalsBtn').addEventListener('click', calculate);
+  document.getElementById('clearBtn').addEventListener('click', clearAll);
+  document.getElementById('backBtn').addEventListener('click', backspace);
+  document.getElementById('plusMinusBtn').addEventListener('click', toggleSign);
+
+  // Keyboard support
+  document.addEventListener('keydown', function(e) {
+    if (e.key >= '0' && e.key <= '9' || e.key === '.') inputNumber(e.key);
+    if (e.key === '+' || e.key === '-' || e.key === '*' || e.key === '/') {
+      e.preventDefault();
+      inputOperator(e.key);
+    }
+    if (e.key === 'Enter' || e.key === '=') { e.preventDefault(); calculate(); }
+    if (e.key === 'Backspace') backspace();
+    if (e.key === 'Escape') clearAll();
+  });
+
+  updateDisplay();
+</script>
+</body>
+</html>
